@@ -7,5 +7,12 @@
 #include "hardware/pwm.h" // Biblioteca do PWM
 
 int main() {
-  return 0;
+    stdio_init_all();
+    sintetizador_init();
+
+    while (true) {
+        sintetizador_update();
+        sleep_ms(1); // Pequeno delay para evitar uso excessivo da CPU
+    }
+    return 0;
 }
