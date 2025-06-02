@@ -27,8 +27,6 @@ typedef enum {
 
 static wave_t current_wave = WAVE_SINE;
 static bool playing = false;
-static uint32_t phase = 0;
-static uint32_t phase_inc = 0;
 
 // Funções auxiliares
 static void update_leds(void) {
@@ -107,7 +105,7 @@ void sintetizador_update(void) {
     last_btn_play = btn_play;
 
     // Leitura do potenciômetro (frequência)
-    adc_select_input(0);
+    adc_select_input(0); // Canal 0 = GPIO 26
     uint16_t pot_value = adc_read();
     float freq = 220.0f + (pot_value / 4095.0f) * 880.0f; // 220Hz a 1100Hz
 
@@ -119,7 +117,6 @@ void sintetizador_update(void) {
             static float phase = 0.0f;
             float phase_step = freq / SAMPLE_RATE;
             uint16_t sample = generate_sample(current_wave, phase);
-            uint slice_num = pwm_gpio_to_slice_num(PIN_AUDIO);
             pwm_set_gpio_level(PIN_AUDIO, sample);
             phase += phase_step;
             if (phase >= 1.0f) phase -= 1.0f;
