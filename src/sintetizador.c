@@ -81,11 +81,16 @@ void sintetizador_init(void) {
     pwm_set_enabled(slice_num, true);
 
     update_leds();
+
+    printf("[INFO] Sintetizador inicializado!\n");
 }
 
 void sintetizador_update(void) {
     static bool last_btn_wave = true;
     static bool last_btn_play = true;
+    static wave_t last_wave = WAVE_MAX;
+    static bool last_playing = false;
+    static int freq_print_counter = 0;
 
     // Leitura dos botões (com debounce simples)
     bool btn_wave = gpio_get(PIN_BTN_WAVE);
@@ -94,12 +99,21 @@ void sintetizador_update(void) {
     if (!btn_wave && last_btn_wave) {
         current_wave = (current_wave + 1) % WAVE_MAX;
         update_leds();
+        printf("[INFO] Forma de onda selecionada: ");
+        switch (current_wave) {
+            case WAVE_SINE:     printf("Senoidal\n"); break;
+            case WAVE_SQUARE:   printf("Quadrada\n"); break;
+            case WAVE_TRIANGLE: printf("Triangular\n"); break;
+            case WAVE_SAWTOOTH: printf("Dente de serra\n"); break;
+            default:            printf("Desconhecida\n");
+        }
         sleep_ms(200); // debounce
     }
     last_btn_wave = btn_wave;
 
     if (!btn_play && last_btn_play) {
         playing = !playing;
+        printf("[INFO] Sintetizador %s\n", playing ? "INICIADO" : "PARADO");
         sleep_ms(200); // debounce
     }
     last_btn_play = btn_play;
@@ -108,6 +122,23 @@ void sintetizador_update(void) {
     adc_select_input(0); // Canal 0 = GPIO 26
     uint16_t pot_value = adc_read();
     float freq = 220.0f + (pot_value / 4095.0f) * 880.0f; // 220Hz a 1100Hz
+
+    // Exibe frequência e forma de onda quando mudam ou a cada 500 ciclos (~0,5s)
+    if (current_wave != last_wave || playing != last_playing || freq_print_counter >= 500) {
+        printf("[INFO] Estado: %s | Forma: ", playing ? "Tocando" : "Parado");
+        switch (current_wave) {
+            case WAVE_SINE:     printf("Senoidal"); break;
+            case WAVE_SQUARE:   printf("Quadrada"); break;
+            case WAVE_TRIANGLE: printf("Triangular"); break;
+            case WAVE_SAWTOOTH: printf("Dente de serra"); break;
+            default:            printf("Desconhecida");
+        }
+        printf(" | Freq: %.1f Hz\n", freq);
+        last_wave = current_wave;
+        last_playing = playing;
+        freq_print_counter = 0;
+    }
+    freq_print_counter++;
 
     // Geração de áudio
     if (playing) {
